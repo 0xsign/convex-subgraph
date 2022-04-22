@@ -1,0 +1,46 @@
+type Platform @entity {
+  id: ID!
+  poolCount: BigInt!
+}
+
+type User @entity {
+  id: ID!
+  address: Bytes!
+  # totalRevenue: TotalRevenue! @derivedFrom(field: "user")
+  paidRewards: [Reward!] @derivedFrom(field: "user")
+}
+
+type Reward @entity {
+  id: ID!
+  user: User!
+  pool: Bytes! #address
+  token: Bytes! #address
+  paidAmountCumulative: BigInt!
+  timestamp: BigInt!
+}
+
+# type Pool @entity {
+#   id: ID!
+#   poolid: BigInt!
+#   platform: Platform!
+#   lpToken: Bytes! #address
+#   token: Bytes! #address
+#   crvRewardsPool: Bytes! #address
+#   rewards: [Reward!] @derivedFrom(field: "pool")
+# }
+
+# type TotalRevenue @entity {
+#   id: ID!
+#   user: User!
+#   " Curve LP staker "
+#   totalPaidCrvRewardsLpProvider: BigInt!
+#   totalPaidExtraRewardsLpProvider: BigInt!
+#   " cvxCRV staker "
+#   totalPaidCrvRewardsCvxCrvStaker: BigInt!
+#   totalPaid3crvRewardsCvxCrvStaker: BigInt!
+#   " CVX staker "
+#   totalPaidCvxCrvRewardsCvxStaker: BigInt!
+#   " CVX locker "
+#   totalPaidCvxCrvRewardsCvxLocker: BigInt!
+#   timestamp: BigInt!
+# }

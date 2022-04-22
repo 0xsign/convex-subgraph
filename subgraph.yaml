@@ -1,0 +1,203 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Booster
+    network: mainnet
+    source:
+      address: "0xf403c135812408bfbe8713b5a23a04b3d48aae31"
+      abi: Booster
+      startBlock: 12450992
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Platform
+        - User
+      abis:
+        - name: Booster
+          file: ./abis/Booster.json
+        - name: CurveRegistry
+          file: ./abis/CurveRegistry.json
+        - name: CurveToken
+          file: ./abis/CurveToken.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Factory
+          file: ./abis/UniswapV2Factory.json
+        - name: Pair
+          file: ./abis/UniswapV2Pair.json
+        - name: FactoryV3
+          file: ./abis/UniswapV3Factory.json
+        - name: Quoter
+          file: ./abis/UniswapV3Quoter.json
+        - name: ChainlinkAggregator
+          file: ./abis/CLAggregator.json
+        - name: CurvePool
+          file: ./abis/CurvePool.json
+        - name: ExtraRewardStashV30
+          file: ./abis/ExtraRewardStashV30.json
+        - name: ExtraRewardStashV32
+          file: ./abis/ExtraRewardStashV32.json
+        - name: ExtraRewardStashV2
+          file: ./abis/ExtraRewardStashV2.json
+        - name: ExtraRewardStashV1
+          file: ./abis/ExtraRewardStashV1.json
+        - name: VirtualBalanceRewardPool
+          file: ./abis/VirtualBalanceRewardPool.json
+        - name: BaseRewardPool
+          file: ./abis/BaseRewardPool.json
+        - name: RedeemableKeep3r
+          file: ./abis/RedeemableKeep3r.json
+      callHandlers:
+        - function: addPool(address,address,uint256)
+          handler: handleAddPool
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: CvxLocker
+    network: mainnet
+    source:
+      address: "0xD18140b4B819b895A3dba5442F959fA44994AF50"
+      abi: CvxLocker
+      startBlock: 13153663
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+      abis:
+        - name: CvxLocker
+          file: ./abis/CvxLocker.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Factory
+          file: ./abis/UniswapV2Factory.json
+        - name: Pair
+          file: ./abis/UniswapV2Pair.json
+        - name: FactoryV3
+          file: ./abis/UniswapV3Factory.json
+        - name: Quoter
+          file: ./abis/UniswapV3Quoter.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleCvxLockerRewardPaid
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: CvxLockerV2
+    network: mainnet
+    source:
+      address: "0x72a19342e8F1838460eBFCCEf09F6585e32db86E"
+      abi: CvxLockerV2
+      startBlock: 13153663
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+      abis:
+        - name: CvxLockerV2
+          file: ./abis/CvxLockerV2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Factory
+          file: ./abis/UniswapV2Factory.json
+        - name: Pair
+          file: ./abis/UniswapV2Pair.json
+        - name: FactoryV3
+          file: ./abis/UniswapV3Factory.json
+        - name: Quoter
+          file: ./abis/UniswapV3Quoter.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleCvxLockerRewardPaid
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: vlCvxExtraRewardDistribution
+    network: mainnet
+    source:
+      address: "0xDecc7d761496d30F30b92Bdf764fb8803c79360D"
+      abi: vlCvxExtraRewardDistribution
+      startBlock: 13375314
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+      abis:
+        - name: vlCvxExtraRewardDistribution
+          file: ./abis/vlCvxExtraRewardDistribution.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Factory
+          file: ./abis/UniswapV2Factory.json
+        - name: Pair
+          file: ./abis/UniswapV2Pair.json
+        - name: FactoryV3
+          file: ./abis/UniswapV3Factory.json
+        - name: Quoter
+          file: ./abis/UniswapV3Quoter.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleVlCvxExtraRewardDistributionRewardPaid
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: CvxRewardPool
+    network: mainnet
+    source:
+      address: "0xcf50b810e57ac33b91dcf525c6ddd9881b139332"
+      abi: CvxRewardPool
+      startBlock: 12451040
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+      abis:
+        - name: CvxRewardPool
+          file: ./abis/CvxRewardPool.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Factory
+          file: ./abis/UniswapV2Factory.json
+        - name: Pair
+          file: ./abis/UniswapV2Pair.json
+        - name: FactoryV3
+          file: ./abis/UniswapV3Factory.json
+        - name: Quoter
+          file: ./abis/UniswapV3Quoter.json
+        - name: BaseRewardPool
+          file: ./abis/BaseRewardPool.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleCvxRewardPoolRewardPaid
+      file: ./src/mapping.ts
+
+templates:
+  - name: CrvRewardsPool
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: BaseRewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+      abis:
+        - name: BaseRewardPool
+          file: ./abis/BaseRewardPool.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleCrvRewardsPoolRewardPaid
+      file: ./src/mapping.ts
