@@ -5,6 +5,10 @@ import {
   DataSourceContext,
 } from "@graphprotocol/graph-ts";
 import {
+  CvxLockerOld,
+  RewardPaid as CvxLockerOldRewardPaid,
+} from "../generated/CvxLockerOld/CvxLockerOld";
+import {
   CvxLocker,
   RewardPaid as CvxLockerRewardPaid,
 } from "../generated/CvxLocker/CvxLocker";
@@ -16,6 +20,10 @@ import {
   CvxRewardPool,
   RewardPaid as CvxRewardPoolRewardPaid,
 } from "../generated/CvxRewardPool/CvxRewardPool";
+import {
+  RewardPaid as vlCvxExtraRewardDistributionOldRewardPaid,
+  vlCvxExtraRewardDistributionOld,
+} from "../generated/vlCvxExtraRewardDistributionOld/vlCvxExtraRewardDistributionOld";
 import {
   RewardPaid as vlCvxExtraRewardDistributionRewardPaid,
   vlCvxExtraRewardDistribution,
@@ -33,10 +41,13 @@ import { Platform, Reward, User } from "../generated/schema";
 import { CrvRewardsPool } from "../generated/templates";
 
 const Booster_address = "0xf403c135812408bfbe8713b5a23a04b3d48aae31";
+const vlCvxExtraRewardDistributionOld_address =
+  "0x8ed4bbf39e3080b35da84a13a0d1a2fdce1e0602";
 const vlCvxExtraRewardDistribution_address =
   "0xdecc7d761496d30f30b92bdf764fb8803c79360d";
 const vlCvxExtraRewardDistributionV2_address =
   "0x9b622f2c40b80ef5efb14c2b2239511ffbfab702";
+const CvxLockerOld_address = "0x5ae0fca14ed08a3122ffb8d624e063e07bce56a1";
 const CvxLocker_address = "0xd18140b4b819b895a3dba5442f959fa44994af50";
 const CvxLockerV2_address = "0x72a19342e8f1838460ebfccef09f6585e32db86e";
 const CvxRewardPool_address = "0xcf50b810e57ac33b91dcf525c6ddd9881b139332";
@@ -111,6 +122,30 @@ export function handleAddPool(call: AddPoolCall): void {
   platform.save();
 }
 
+// CvxLockerOld
+export function handleCvxLockerOldRewardPaid(
+  event: CvxLockerOldRewardPaid
+): void {
+  const cvxLockerOld = CvxLockerOld.bind(
+    Address.fromString(CvxLockerOld_address)
+  );
+  const user = getUser(event.params._user);
+  const stakingToken = cvxLockerOld.stakingToken();
+  const paidReward = getReward(
+    cvxLockerOld._address,
+    stakingToken,
+    event.params._rewardsToken,
+    user
+  );
+
+  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  paidReward.timestamp = event.block.timestamp;
+
+  paidReward.save();
+}
+
 // CvxLocker
 export function handleCvxLockerRewardPaid(event: CvxLockerRewardPaid): void {
   const cvxLocker = CvxLocker.bind(Address.fromString(CvxLocker_address));
@@ -140,6 +175,30 @@ export function handleCvxLockerV2RewardPaid(
   const stakingToken = cvxLockerV2.stakingToken();
   const paidReward = getReward(
     cvxLockerV2._address,
+    stakingToken,
+    event.params._rewardsToken,
+    user
+  );
+
+  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  paidReward.timestamp = event.block.timestamp;
+
+  paidReward.save();
+}
+
+// vlCvxExtraRewardDistribution
+export function handleVlCvxExtraRewardDistributionOldRewardPaid(
+  event: vlCvxExtraRewardDistributionOldRewardPaid
+): void {
+  const _vlCvxExtraRewardDistributionOld = vlCvxExtraRewardDistributionOld.bind(
+    Address.fromString(vlCvxExtraRewardDistributionOld_address)
+  );
+  const user = getUser(event.params._user);
+  const stakingToken = _vlCvxExtraRewardDistributionOld.cvxlocker();
+  const paidReward = getReward(
+    _vlCvxExtraRewardDistributionOld._address,
     stakingToken,
     event.params._rewardsToken,
     user
