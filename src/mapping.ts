@@ -71,6 +71,8 @@ function getReward(
   user: User
 ): Reward {
   const id =
+    poolAddress.toHexString() +
+    "-" +
     stakingTokenAddress.toHexString() +
     "-" +
     rewardTokenAddress.toHexString() +
