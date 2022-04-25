@@ -11,7 +11,8 @@ query getPaidRewards($user_id: ID!) {
   user(id: $user_id) {
     paidRewards {
       pool
-      token
+      stakingToken
+      rewardToken
       paidAmountCumulative
     }
   }

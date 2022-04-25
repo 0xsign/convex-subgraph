@@ -13,7 +13,8 @@ type Reward @entity {
   id: ID!
   user: User!
   pool: Bytes! #address
-  token: Bytes! #address
+  rewardToken: Bytes! #address
+  stakingToken: Bytes! #address
   paidAmountCumulative: BigInt!
   timestamp: BigInt!
 }

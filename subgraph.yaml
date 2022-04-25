@@ -60,7 +60,7 @@ dataSources:
     name: CvxLocker
     network: mainnet
     source:
-      address: "0xD18140b4B819b895A3dba5442F959fA44994AF50"
+      address: "0xd18140b4b819b895a3dba5442f959fa44994af50"
       abi: CvxLocker
       startBlock: 13153663
     mapping:
@@ -91,9 +91,9 @@ dataSources:
     name: CvxLockerV2
     network: mainnet
     source:
-      address: "0x72a19342e8F1838460eBFCCEf09F6585e32db86E"
+      address: "0x72a19342e8f1838460ebfccef09f6585e32db86e"
       abi: CvxLockerV2
-      startBlock: 13153663
+      startBlock: 14320609
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
@@ -115,14 +115,14 @@ dataSources:
           file: ./abis/UniswapV3Quoter.json
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
-          handler: handleCvxLockerRewardPaid
+          handler: handleCvxLockerV2RewardPaid
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
     name: vlCvxExtraRewardDistribution
     network: mainnet
     source:
-      address: "0xDecc7d761496d30F30b92Bdf764fb8803c79360D"
+      address: "0xdecc7d761496d30f30b92bdf764fb8803c79360d"
       abi: vlCvxExtraRewardDistribution
       startBlock: 13375314
     mapping:
@@ -147,6 +147,37 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleVlCvxExtraRewardDistributionRewardPaid
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: vlCvxExtraRewardDistributionV2
+    network: mainnet
+    source:
+      address: "0x9b622f2c40b80ef5efb14c2b2239511ffbfab702"
+      abi: vlCvxExtraRewardDistributionV2
+      startBlock: 14356209
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+      abis:
+        - name: vlCvxExtraRewardDistributionV2
+          file: ./abis/vlCvxExtraRewardDistributionV2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Factory
+          file: ./abis/UniswapV2Factory.json
+        - name: Pair
+          file: ./abis/UniswapV2Pair.json
+        - name: FactoryV3
+          file: ./abis/UniswapV3Factory.json
+        - name: Quoter
+          file: ./abis/UniswapV3Quoter.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleVlCvxExtraRewardDistributionV2RewardPaid
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
