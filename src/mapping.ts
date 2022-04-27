@@ -142,6 +142,7 @@ function getTotalReward(
 
   if (!reward) {
     reward = new TotalReward(id);
+    reward.pool = poolAddress;
     reward.rewardToken = rewardTokenAddress;
     reward.stakingToken = stakingTokenAddress;
     reward.platform = platform.id;
