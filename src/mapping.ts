@@ -33,11 +33,15 @@ import {
   vlCvxExtraRewardDistributionV2,
 } from "../generated/vlCvxExtraRewardDistributionV2/vlCvxExtraRewardDistributionV2";
 import {
+  ConvexMasterChef,
+  RewardPaid as ConvexMasterChefRewardPaid,
+} from "../generated/ConvexMasterChef/ConvexMasterChef";
+import {
   BaseRewardPool,
   RewardPaid as PoolCrvRewardsRewardPaid,
 } from "../generated/templates/PoolCrvRewards/BaseRewardPool";
 import { AddPoolCall, Booster } from "../generated/Booster/Booster";
-import { Platform, Reward, User } from "../generated/schema";
+import { Platform, Reward, User, TotalReward } from "../generated/schema";
 import { CrvRewardsPool } from "../generated/templates";
 
 const Booster_address = "0xf403c135812408bfbe8713b5a23a04b3d48aae31";
@@ -51,13 +55,14 @@ const CvxLockerOld_address = "0x5ae0fca14ed08a3122ffb8d624e063e07bce56a1";
 const CvxLocker_address = "0xd18140b4b819b895a3dba5442f959fa44994af50";
 const CvxLockerV2_address = "0x72a19342e8f1838460ebfccef09f6585e32db86e";
 const CvxRewardPool_address = "0xcf50b810e57ac33b91dcf525c6ddd9881b139332";
+const ConvexMasterChef_address = "0x5f465e9fcffc217c5849906216581a657cd60605";
 const platform_convex = "Convex";
 
-function getPlatform(): Platform {
-  let platform = Platform.load(platform_convex);
+function getPlatform(platformId: string): Platform {
+  let platform = Platform.load(platformId);
 
   if (!platform) {
-    platform = new Platform(platform_convex);
+    platform = new Platform(platformId);
   }
 
   return platform;
@@ -75,6 +80,14 @@ function getUser(address: Address): User {
   return user;
 }
 
+/**
+ * Total rewards accumulated by given user
+ * @param poolAddress
+ * @param stakingTokenAddress
+ * @param rewardTokenAddress
+ * @param user
+ * @returns
+ */
 function getReward(
   poolAddress: Address,
   stakingTokenAddress: Address,
@@ -103,9 +116,44 @@ function getReward(
   return reward;
 }
 
+/**
+ * Total rewards accumulated by given platform
+ * @param poolAddress
+ * @param stakingTokenAddress
+ * @param rewardTokenAddress
+ * @param platform
+ * @returns
+ */
+function getTotalReward(
+  poolAddress: Address,
+  stakingTokenAddress: Address,
+  rewardTokenAddress: Address,
+  platform: Platform
+): TotalReward {
+  const id =
+    poolAddress.toHexString() +
+    "-" +
+    stakingTokenAddress.toHexString() +
+    "-" +
+    rewardTokenAddress.toHexString() +
+    "-" +
+    platform.id;
+  let reward = TotalReward.load(id);
+
+  if (!reward) {
+    reward = new TotalReward(id);
+    reward.rewardToken = rewardTokenAddress;
+    reward.stakingToken = stakingTokenAddress;
+    reward.platform = platform.id;
+    reward.save();
+  }
+
+  return reward;
+}
+
 // Booster
 export function handleAddPool(call: AddPoolCall): void {
-  const platform = getPlatform();
+  const platform = getPlatform(platform_convex);
   const booster = Booster.bind(Address.fromString(Booster_address));
   const pid = platform.poolCount;
   const poolInfo = booster.try_poolInfo(pid);
@@ -130,40 +178,66 @@ export function handleCvxLockerOldRewardPaid(
     Address.fromString(CvxLockerOld_address)
   );
   const user = getUser(event.params._user);
+  const platform = getPlatform(platform_convex);
   const stakingToken = cvxLockerOld.stakingToken();
-  const paidReward = getReward(
+  const reward = getReward(
     cvxLockerOld._address,
     stakingToken,
     event.params._rewardsToken,
     user
   );
+  const totalReward = getTotalReward(
+    cvxLockerOld._address,
+    stakingToken,
+    event.params._rewardsToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params._reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }
 
 // CvxLocker
 export function handleCvxLockerRewardPaid(event: CvxLockerRewardPaid): void {
   const cvxLocker = CvxLocker.bind(Address.fromString(CvxLocker_address));
   const user = getUser(event.params._user);
+  const platform = getPlatform(platform_convex);
   const stakingToken = cvxLocker.stakingToken();
-  const paidReward = getReward(
+  const reward = getReward(
     cvxLocker._address,
     stakingToken,
     event.params._rewardsToken,
     user
   );
+  const totalReward = getTotalReward(
+    cvxLocker._address,
+    stakingToken,
+    event.params._rewardsToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params._reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }
 
 // CvxLockerV2
@@ -172,20 +246,33 @@ export function handleCvxLockerV2RewardPaid(
 ): void {
   const cvxLockerV2 = CvxLockerV2.bind(Address.fromString(CvxLockerV2_address));
   const user = getUser(event.params._user);
+  const platform = getPlatform(platform_convex);
   const stakingToken = cvxLockerV2.stakingToken();
-  const paidReward = getReward(
+  const reward = getReward(
     cvxLockerV2._address,
     stakingToken,
     event.params._rewardsToken,
     user
   );
+  const totalReward = getTotalReward(
+    cvxLockerV2._address,
+    stakingToken,
+    event.params._rewardsToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params._reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }
 
 // vlCvxExtraRewardDistribution
@@ -196,20 +283,33 @@ export function handleVlCvxExtraRewardDistributionOldRewardPaid(
     Address.fromString(vlCvxExtraRewardDistributionOld_address)
   );
   const user = getUser(event.params._user);
+  const platform = getPlatform(platform_convex);
   const stakingToken = _vlCvxExtraRewardDistributionOld.cvxlocker();
-  const paidReward = getReward(
+  const reward = getReward(
     _vlCvxExtraRewardDistributionOld._address,
     stakingToken,
     event.params._rewardsToken,
     user
   );
+  const totalReward = getTotalReward(
+    _vlCvxExtraRewardDistributionOld._address,
+    stakingToken,
+    event.params._rewardsToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params._reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }
 
 // vlCvxExtraRewardDistribution
@@ -220,20 +320,33 @@ export function handleVlCvxExtraRewardDistributionRewardPaid(
     Address.fromString(vlCvxExtraRewardDistribution_address)
   );
   const user = getUser(event.params._user);
+  const platform = getPlatform(platform_convex);
   const stakingToken = _vlCvxExtraRewardDistribution.cvxlocker();
-  const paidReward = getReward(
+  const reward = getReward(
     _vlCvxExtraRewardDistribution._address,
     stakingToken,
     event.params._rewardsToken,
     user
   );
+  const totalReward = getTotalReward(
+    _vlCvxExtraRewardDistribution._address,
+    stakingToken,
+    event.params._rewardsToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params._reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }
 
 // vlCvxExtraRewardDistributionV2
@@ -244,20 +357,33 @@ export function handleVlCvxExtraRewardDistributionV2RewardPaid(
     Address.fromString(vlCvxExtraRewardDistributionV2_address)
   );
   const user = getUser(event.params._user);
+  const platform = getPlatform(platform_convex);
   const stakingToken = _vlCvxExtraRewardDistributionV2.cvxlocker();
-  const paidReward = getReward(
+  const reward = getReward(
     _vlCvxExtraRewardDistributionV2._address,
     stakingToken,
     event.params._rewardsToken,
     user
   );
+  const totalReward = getTotalReward(
+    _vlCvxExtraRewardDistributionV2._address,
+    stakingToken,
+    event.params._rewardsToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params._reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params._reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }
 
 // CvxRewardPool
@@ -265,24 +391,76 @@ export function handleCvxRewardPoolRewardPaid(
   event: CvxRewardPoolRewardPaid
 ): void {
   const user = getUser(event.params.user);
+  const platform = getPlatform(platform_convex);
   const cvxRewardPool = CvxRewardPool.bind(
     Address.fromString(CvxRewardPool_address)
   );
   const stakingToken = cvxRewardPool.stakingToken();
   const rewardToken = cvxRewardPool.rewardToken();
-  const paidReward = getReward(
+  const reward = getReward(
     cvxRewardPool._address,
     stakingToken,
     rewardToken,
     user
   );
+  const totalReward = getTotalReward(
+    cvxRewardPool._address,
+    stakingToken,
+    rewardToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params.reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params.reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
+}
+
+// ConvexMasterChef
+export function handleConvexMasterChefRewardPaid(
+  event: ConvexMasterChefRewardPaid
+): void {
+  const user = getUser(event.params.user);
+  const platform = getPlatform(platform_convex);
+  const convexMasterChef = ConvexMasterChef.bind(
+    Address.fromString(ConvexMasterChef_address)
+  );
+  const pool = convexMasterChef.poolInfo(event.params.pid);
+  const stakingToken = pool.value0; // lpToken
+  const rewardToken = convexMasterChef.cvx();
+  const reward = getReward(
+    convexMasterChef._address,
+    stakingToken,
+    rewardToken,
+    user
+  );
+  const totalReward = getTotalReward(
+    convexMasterChef._address,
+    stakingToken,
+    rewardToken,
+    platform
+  );
+
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
+    event.params.amount
+  );
+  reward.timestamp = event.block.timestamp;
+
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params.amount
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }
 
 // BaseRewardPool
@@ -291,22 +469,35 @@ export function handleCrvRewardsPoolRewardPaid(
 ): void {
   const context = dataSource.context();
   const user = getUser(event.params.user);
+  const platform = getPlatform(platform_convex);
   const baseRewardPool = BaseRewardPool.bind(
     Address.fromString(context.getString("crvRewardsPool"))
   );
   const stakingToken = baseRewardPool.stakingToken();
   const rewardToken = baseRewardPool.rewardToken();
-  const paidReward = getReward(
+  const reward = getReward(
     baseRewardPool._address,
     stakingToken,
     rewardToken,
     user
   );
+  const totalReward = getTotalReward(
+    baseRewardPool._address,
+    stakingToken,
+    rewardToken,
+    platform
+  );
 
-  paidReward.paidAmountCumulative = paidReward.paidAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
     event.params.reward
   );
-  paidReward.timestamp = event.block.timestamp;
+  reward.timestamp = event.block.timestamp;
 
-  paidReward.save();
+  totalReward.paidAmountCumulative = totalReward.paidAmountCumulative.plus(
+    event.params.reward
+  );
+  totalReward.timestamp = event.block.timestamp;
+
+  reward.save();
+  totalReward.save();
 }

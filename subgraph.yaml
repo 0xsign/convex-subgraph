@@ -275,6 +275,27 @@ dataSources:
           handler: handleCvxRewardPoolRewardPaid
       file: ./src/mapping.ts
 
+  - kind: ethereum/contract
+    name: ConvexMasterChef
+    network: mainnet
+    source:
+      address: "0x5f465e9fcffc217c5849906216581a657cd60605"
+      abi: ConvexMasterChef
+      startBlock: 12451231
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+      abis:
+        - name: ConvexMasterChef
+          file: ./abis/ConvexMasterChef.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,indexed uint256,uint256)
+          handler: handleConvexMasterChefRewardPaid
+      file: ./src/mapping.ts
+
 templates:
   - name: CrvRewardsPool
     kind: ethereum/contract
