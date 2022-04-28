@@ -1,7 +1,7 @@
 type Platform @entity {
   id: ID!
   poolCount: BigInt!
-  paidRewards: [TotalReward!] @derivedFrom(field: "platform")
+  paidRewards: [PlatformReward!] @derivedFrom(field: "platform")
 }
 
 type User @entity {
@@ -12,6 +12,7 @@ type User @entity {
 
 type Reward @entity {
   id: ID!
+  platform: Platform!
   user: User!
   pool: Bytes! #address
   rewardToken: Bytes! #address
@@ -20,7 +21,7 @@ type Reward @entity {
   timestamp: BigInt!
 }
 
-type TotalReward @entity {
+type PlatformReward @entity {
   id: ID!
   platform: Platform!
   pool: Bytes! #address
