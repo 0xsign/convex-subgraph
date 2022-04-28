@@ -1,13 +1,13 @@
 type Platform @entity {
   id: ID!
   poolCount: BigInt!
-  paidRewards: [PlatformReward!] @derivedFrom(field: "platform")
+  rewards: [PlatformReward!] @derivedFrom(field: "platform")
 }
 
 type User @entity {
   id: ID!
   address: Bytes!
-  paidRewards: [Reward!] @derivedFrom(field: "user")
+  rewards: [Reward!] @derivedFrom(field: "user")
 }
 
 type Reward @entity {

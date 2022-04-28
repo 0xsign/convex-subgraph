@@ -7,13 +7,29 @@ Listen to all `RewardPaid` events to collect and accumulate account rewards info
 Query user stats:
 
 ```graphql
-query getPaidRewards($user_id: ID!) {
+query getRewards($user_id: ID!) {
   user(id: $user_id) {
-    paidRewards {
+    rewards {
       pool
       stakingToken
       rewardToken
       paidAmountCumulative
+    }
+  }
+}
+```
+
+Query platform stats:
+
+```graphql
+query getRewards($platform_id: ID!) {
+  platform(id: $platform_id) {
+    rewards {
+      pool
+      stakingToken
+      rewardToken
+      paidAmountCumulative
+      addedAmountCumulative
     }
   }
 }
