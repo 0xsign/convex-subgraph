@@ -28,5 +28,6 @@ type PlatformReward @entity {
   rewardToken: Bytes! #address
   stakingToken: Bytes! #address
   paidAmountCumulative: BigInt!
+  addedAmountCumulative: BigInt!
   timestamp: BigInt!
 }

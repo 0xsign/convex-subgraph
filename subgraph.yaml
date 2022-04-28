@@ -85,6 +85,8 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleCvxLockerOldRewardPaid
+        - event: RewardAdded(indexed address,uint256)
+          handler: handleCvxLockerOldRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -116,6 +118,8 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleCvxLockerRewardPaid
+        - event: RewardAdded(indexed address,uint256)
+          handler: handleCvxLockerRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -147,6 +151,8 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleCvxLockerV2RewardPaid
+        - event: RewardAdded(indexed address,uint256)
+          handler: handleCvxLockerV2RewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -178,6 +184,8 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleVlCvxExtraRewardDistributionOldRewardPaid
+        - event: RewardAdded(indexed address,indexed uint256,uint256)
+          handler: handleVlCvxExtraRewardDistributionOldRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -209,6 +217,8 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleVlCvxExtraRewardDistributionRewardPaid
+        - event: RewardAdded(indexed address,indexed uint256,uint256)
+          handler: handleVlCvxExtraRewardDistributionRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -240,6 +250,8 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleVlCvxExtraRewardDistributionV2RewardPaid
+        - event: RewardAdded(indexed address,indexed uint256,uint256)
+          handler: handleVlCvxExtraRewardDistributionV2RewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -273,6 +285,8 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
           handler: handleCvxRewardPoolRewardPaid
+        - event: RewardAdded(uint256)
+          handler: handleCvxRewardPoolRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -314,4 +328,6 @@ templates:
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
           handler: handleCrvRewardsPoolRewardPaid
+        - event: RewardAdded(uint256)
+          handler: handleCrvRewardsPoolRewardAdded
       file: ./src/mapping.ts
