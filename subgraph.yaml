@@ -69,6 +69,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: CvxLockerOld
           file: ./abis/CvxLockerOld.json
@@ -102,6 +103,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: CvxLocker
           file: ./abis/CvxLocker.json
@@ -135,6 +137,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: CvxLockerV2
           file: ./abis/CvxLockerV2.json
@@ -168,6 +171,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: vlCvxExtraRewardDistributionOld
           file: ./abis/vlCvxExtraRewardDistributionOld.json
@@ -201,6 +205,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: vlCvxExtraRewardDistribution
           file: ./abis/vlCvxExtraRewardDistribution.json
@@ -234,6 +239,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: vlCvxExtraRewardDistributionV2
           file: ./abis/vlCvxExtraRewardDistributionV2.json
@@ -267,6 +273,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: CvxRewardPool
           file: ./abis/CvxRewardPool.json
@@ -302,12 +309,61 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: ConvexMasterChef
           file: ./abis/ConvexMasterChef.json
       eventHandlers:
         - event: RewardPaid(indexed address,indexed uint256,uint256)
           handler: handleConvexMasterChefRewardPaid
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: VirtualBalanceRewardPool
+    network: mainnet
+    source:
+      address: "0x7091dbb7fcba54569ef1387ac89eb2a5c9f6d2ea"
+      abi: VirtualBalanceRewardPool
+      startBlock: 12451054
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+        - PlatformReward
+      abis:
+        - name: VirtualBalanceRewardPool
+          file: ./abis/VirtualBalanceRewardPool.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleVirtualBalanceRewardPoolRewardPaid
+        - event: RewardAdded(uint256)
+          handler: handleVirtualBalanceRewardPoolRewardAdded
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: ConvexRewarder
+    network: mainnet
+    source:
+      address: "0x1fd97b5e5a257b0b9b9a42a96bb8870cbdd1eb79"
+      abi: ConvexRewarder
+      startBlock: 12553722
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+        - PlatformReward
+      abis:
+        - name: ConvexRewarder
+          file: ./abis/ConvexRewarder.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleConvexRewarderRewardPaid
+        - event: RewardAdded(uint256)
+          handler: handleConvexRewarderRewardAdded
       file: ./src/mapping.ts
 
 templates:
@@ -322,6 +378,7 @@ templates:
       language: wasm/assemblyscript
       entities:
         - Reward
+        - PlatformReward
       abis:
         - name: BaseRewardPool
           file: ./abis/BaseRewardPool.json
