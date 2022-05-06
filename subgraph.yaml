@@ -54,6 +54,8 @@ dataSources:
       callHandlers:
         - function: addPool(address,address,uint256)
           handler: handleAddPool
+        - function: rewardClaimed(uint256,address,uint256)
+          handler: handleRewardClaimed
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -86,8 +88,6 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleCvxLockerOldRewardPaid
-        - event: RewardAdded(indexed address,uint256)
-          handler: handleCvxLockerOldRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -120,8 +120,6 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleCvxLockerRewardPaid
-        - event: RewardAdded(indexed address,uint256)
-          handler: handleCvxLockerRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -154,8 +152,6 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleCvxLockerV2RewardPaid
-        - event: RewardAdded(indexed address,uint256)
-          handler: handleCvxLockerV2RewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -188,8 +184,6 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleVlCvxExtraRewardDistributionOldRewardPaid
-        - event: RewardAdded(indexed address,indexed uint256,uint256)
-          handler: handleVlCvxExtraRewardDistributionOldRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -222,8 +216,6 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleVlCvxExtraRewardDistributionRewardPaid
-        - event: RewardAdded(indexed address,indexed uint256,uint256)
-          handler: handleVlCvxExtraRewardDistributionRewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -256,8 +248,6 @@ dataSources:
       eventHandlers:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleVlCvxExtraRewardDistributionV2RewardPaid
-        - event: RewardAdded(indexed address,indexed uint256,uint256)
-          handler: handleVlCvxExtraRewardDistributionV2RewardAdded
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -289,11 +279,14 @@ dataSources:
           file: ./abis/UniswapV3Quoter.json
         - name: BaseRewardPool
           file: ./abis/BaseRewardPool.json
+        - name: VirtualBalanceRewardPool
+          file: ./abis/VirtualBalanceRewardPool.json
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
           handler: handleCvxRewardPoolRewardPaid
-        - event: RewardAdded(uint256)
-          handler: handleCvxRewardPoolRewardAdded
+      callHandlers:
+        - function: addExtraReward(address)
+          handler: handleAddExtraReward
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -319,12 +312,12 @@ dataSources:
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
-    name: VirtualBalanceRewardPool
+    name: CvxCrvReward
     network: mainnet
     source:
-      address: "0x7091dbb7fcba54569ef1387ac89eb2a5c9f6d2ea"
-      abi: VirtualBalanceRewardPool
-      startBlock: 12451054
+      address: "0x3fe65692bfcd0e6cf84cb1e7d24108e434a7587e"
+      abi: BaseRewardPool
+      startBlock: 12451039
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
@@ -333,13 +326,16 @@ dataSources:
         - Reward
         - PlatformReward
       abis:
+        - name: BaseRewardPool
+          file: ./abis/BaseRewardPool.json
         - name: VirtualBalanceRewardPool
           file: ./abis/VirtualBalanceRewardPool.json
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
-          handler: handleVirtualBalanceRewardPoolRewardPaid
-        - event: RewardAdded(uint256)
-          handler: handleVirtualBalanceRewardPoolRewardAdded
+          handler: handleCvxCrvRewardRewardPaid
+      callHandlers:
+        - function: addExtraReward(address)
+          handler: handleAddExtraReward
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
@@ -359,11 +355,14 @@ dataSources:
       abis:
         - name: ConvexRewarder
           file: ./abis/ConvexRewarder.json
+        - name: VirtualBalanceRewardPool
+          file: ./abis/VirtualBalanceRewardPool.json
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
           handler: handleConvexRewarderRewardPaid
-        - event: RewardAdded(uint256)
-          handler: handleConvexRewarderRewardAdded
+      callHandlers:
+        - function: addExtraReward(address)
+          handler: handleAddExtraReward
       file: ./src/mapping.ts
 
 templates:
@@ -382,9 +381,34 @@ templates:
       abis:
         - name: BaseRewardPool
           file: ./abis/BaseRewardPool.json
+        - name: VirtualBalanceRewardPool
+          file: ./abis/VirtualBalanceRewardPool.json
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
           handler: handleCrvRewardsPoolRewardPaid
-        - event: RewardAdded(uint256)
-          handler: handleCrvRewardsPoolRewardAdded
+      callHandlers:
+        - function: addExtraReward(address)
+          handler: handleAddExtraReward
+      file: ./src/mapping.ts
+
+  - name: VirtualBalanceRewardPoolTemplate
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: VirtualBalanceRewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+        - PlatformReward
+      abis:
+        - name: BaseRewardPool
+          file: ./abis/BaseRewardPool.json
+        - name: VirtualBalanceRewardPool
+          file: ./abis/VirtualBalanceRewardPool.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleVirtualBalanceRewardPoolRewardPaid
       file: ./src/mapping.ts

@@ -7,60 +7,59 @@ import {
 import {
   CvxLockerOld,
   RewardPaid as CvxLockerOldRewardPaid,
-  RewardAdded as CvxLockerOldRewardAdded,
 } from "../generated/CvxLockerOld/CvxLockerOld";
 import {
   CvxLocker,
   RewardPaid as CvxLockerRewardPaid,
-  RewardAdded as CvxLockerRewardAdded,
 } from "../generated/CvxLocker/CvxLocker";
 import {
   CvxLockerV2,
   RewardPaid as CvxLockerV2RewardPaid,
-  RewardAdded as CvxLockerV2RewardAdded,
 } from "../generated/CvxLockerV2/CvxLockerV2";
 import {
   CvxRewardPool,
   RewardPaid as CvxRewardPoolRewardPaid,
-  RewardAdded as CvxRewardPoolRewardAdded,
 } from "../generated/CvxRewardPool/CvxRewardPool";
 import {
   vlCvxExtraRewardDistributionOld,
   RewardPaid as vlCvxExtraRewardDistributionOldRewardPaid,
-  RewardAdded as vlCvxExtraRewardDistributionOldRewardAdded,
 } from "../generated/vlCvxExtraRewardDistributionOld/vlCvxExtraRewardDistributionOld";
 import {
   vlCvxExtraRewardDistribution,
   RewardPaid as vlCvxExtraRewardDistributionRewardPaid,
-  RewardAdded as vlCvxExtraRewardDistributionRewardAdded,
 } from "../generated/vlCvxExtraRewardDistribution/vlCvxExtraRewardDistribution";
 import {
   vlCvxExtraRewardDistributionV2,
   RewardPaid as vlCvxExtraRewardDistributionV2RewardPaid,
-  RewardAdded as vlCvxExtraRewardDistributionV2RewardAdded,
 } from "../generated/vlCvxExtraRewardDistributionV2/vlCvxExtraRewardDistributionV2";
 import {
   ConvexMasterChef,
   RewardPaid as ConvexMasterChefRewardPaid,
 } from "../generated/ConvexMasterChef/ConvexMasterChef";
-import {
-  VirtualBalanceRewardPool,
-  RewardPaid as VirtualBalanceRewardPoolRewardPaid,
-  RewardAdded as VirtualBalanceRewardPoolRewardAdded,
-} from "../generated/VirtualBalanceRewardPool/VirtualBalanceRewardPool";
+import { RewardPaid as CvxCrvRewardRewardPaid } from "../generated/CvxCrvReward/BaseRewardPool";
 import {
   ConvexRewarder,
   RewardPaid as ConvexRewarderRewardPaid,
-  RewardAdded as ConvexRewarderRewardAdded,
 } from "../generated/ConvexRewarder/ConvexRewarder";
 import {
+  AddExtraRewardCall,
   BaseRewardPool,
   RewardPaid as PoolCrvRewardsRewardPaid,
-  RewardAdded as PoolCrvRewardsRewardAdded,
 } from "../generated/templates/CrvRewardsPool/BaseRewardPool";
-import { AddPoolCall, Booster } from "../generated/Booster/Booster";
+import {
+  AddPoolCall,
+  Booster,
+  RewardClaimedCall,
+} from "../generated/Booster/Booster";
 import { Platform, Reward, User, PlatformReward } from "../generated/schema";
-import { CrvRewardsPool } from "../generated/templates";
+import {
+  CrvRewardsPool,
+  VirtualBalanceRewardPoolTemplate,
+} from "../generated/templates";
+import {
+  VirtualBalanceRewardPool,
+  RewardPaid as VirtualBalanceRewardPoolRewardPaid,
+} from "../generated/templates/VirtualBalanceRewardPoolTemplate/VirtualBalanceRewardPool";
 
 const Booster_address = "0xf403c135812408bfbe8713b5a23a04b3d48aae31";
 const vlCvxExtraRewardDistributionOld_address =
@@ -74,9 +73,9 @@ const CvxLocker_address = "0xd18140b4b819b895a3dba5442f959fa44994af50";
 const CvxLockerV2_address = "0x72a19342e8f1838460ebfccef09f6585e32db86e";
 const CvxRewardPool_address = "0xcf50b810e57ac33b91dcf525c6ddd9881b139332";
 const ConvexMasterChef_address = "0x5f465e9fcffc217c5849906216581a657cd60605";
-const VirtualBalanceRewardPool_address =
-  "0x7091dbb7fcba54569ef1387ac89eb2a5c9f6d2ea";
 const ConvexRewarder_address = "0x1fd97b5e5a257b0b9b9a42a96bb8870cbdd1eb79";
+const CvxCrvReward_address = "0x3fe65692bfcd0e6cf84cb1e7d24108e434a7587e";
+const Cvx_address = "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b";
 const platform_curve = "curve";
 const platform_frax = "frax";
 
@@ -180,6 +179,7 @@ function getPlatformReward(
 }
 
 // Booster
+// Track new pools and start listening to their events
 export function handleAddPool(call: AddPoolCall): void {
   const platform = getPlatform(platform_curve);
   const booster = Booster.bind(Address.fromString(Booster_address));
@@ -196,6 +196,64 @@ export function handleAddPool(call: AddPoolCall): void {
   }
 
   platform.save();
+}
+
+// Mint CVX
+// Called by BaseRewardPool#getReward
+export function handleRewardClaimed(call: RewardClaimedCall): void {
+  const platform = getPlatform(platform_curve);
+  const booster = Booster.bind(Address.fromString(Booster_address));
+  const user = getUser(call.inputs._address);
+
+  // success
+  if (call.outputs.value0) {
+    let poolAddress: Address | null = null;
+
+    const cvxCrvRewardAddress = Address.fromString(CvxCrvReward_address);
+    // handle CvxCrvReward (pid 0) manually because it's not in Booster#poolInfo array (poolInfo[0] is another BaseRewardPool)
+    if (call.from.equals(cvxCrvRewardAddress)) {
+      poolAddress = cvxCrvRewardAddress;
+    } else {
+      const poolInfo = booster.try_poolInfo(call.inputs._pid);
+      if (!poolInfo.reverted) {
+        poolAddress = poolInfo.value.value3;
+      }
+    }
+
+    if (!poolAddress) {
+      return;
+    }
+
+    const baseRewardPool = BaseRewardPool.bind(poolAddress);
+    const stakingToken = baseRewardPool.stakingToken();
+    const rewardToken = Address.fromString(Cvx_address);
+    const reward = getReward(
+      platform,
+      user,
+      baseRewardPool._address,
+      stakingToken,
+      rewardToken
+    );
+    const platformReward = getPlatformReward(
+      platform,
+      baseRewardPool._address,
+      stakingToken,
+      rewardToken
+    );
+
+    reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
+      call.inputs._amount
+    );
+    reward.timestamp = call.block.timestamp;
+
+    platformReward.paidAmountCumulative = platformReward.paidAmountCumulative.plus(
+      call.inputs._amount
+    );
+    platformReward.timestamp = call.block.timestamp;
+
+    reward.save();
+    platformReward.save();
+  }
 }
 
 // CvxLockerOld
@@ -236,29 +294,6 @@ export function handleCvxLockerOldRewardPaid(
   platformReward.save();
 }
 
-export function handleCvxLockerOldRewardAdded(
-  event: CvxLockerOldRewardAdded
-): void {
-  const cvxLockerOld = CvxLockerOld.bind(
-    Address.fromString(CvxLockerOld_address)
-  );
-  const platform = getPlatform(platform_curve);
-  const stakingToken = cvxLockerOld.stakingToken();
-  const platformReward = getPlatformReward(
-    platform,
-    cvxLockerOld._address,
-    stakingToken,
-    event.params._token
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params._reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
-  platformReward.save();
-}
-
 // CvxLocker
 export function handleCvxLockerRewardPaid(event: CvxLockerRewardPaid): void {
   const cvxLocker = CvxLocker.bind(Address.fromString(CvxLocker_address));
@@ -290,25 +325,6 @@ export function handleCvxLockerRewardPaid(event: CvxLockerRewardPaid): void {
   platformReward.timestamp = event.block.timestamp;
 
   reward.save();
-  platformReward.save();
-}
-
-export function handleCvxLockerRewardAdded(event: CvxLockerRewardAdded): void {
-  const cvxLocker = CvxLocker.bind(Address.fromString(CvxLocker_address));
-  const platform = getPlatform(platform_curve);
-  const stakingToken = cvxLocker.stakingToken();
-  const platformReward = getPlatformReward(
-    platform,
-    cvxLocker._address,
-    stakingToken,
-    event.params._token
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params._reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
   platformReward.save();
 }
 
@@ -345,27 +361,6 @@ export function handleCvxLockerV2RewardPaid(
   platformReward.timestamp = event.block.timestamp;
 
   reward.save();
-  platformReward.save();
-}
-
-export function handleCvxLockerV2RewardAdded(
-  event: CvxLockerV2RewardAdded
-): void {
-  const cvxLockerV2 = CvxLockerV2.bind(Address.fromString(CvxLockerV2_address));
-  const platform = getPlatform(platform_curve);
-  const stakingToken = cvxLockerV2.stakingToken();
-  const platformReward = getPlatformReward(
-    platform,
-    cvxLockerV2._address,
-    stakingToken,
-    event.params._token
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params._reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
   platformReward.save();
 }
 
@@ -407,29 +402,6 @@ export function handleVlCvxExtraRewardDistributionOldRewardPaid(
   platformReward.save();
 }
 
-export function handleVlCvxExtraRewardDistributionOldRewardAdded(
-  event: vlCvxExtraRewardDistributionOldRewardAdded
-): void {
-  const _vlCvxExtraRewardDistributionOld = vlCvxExtraRewardDistributionOld.bind(
-    Address.fromString(vlCvxExtraRewardDistributionOld_address)
-  );
-  const platform = getPlatform(platform_curve);
-  const stakingToken = _vlCvxExtraRewardDistributionOld.cvxlocker();
-  const platformReward = getPlatformReward(
-    platform,
-    _vlCvxExtraRewardDistributionOld._address,
-    stakingToken,
-    event.params._token
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params._reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
-  platformReward.save();
-}
-
 // vlCvxExtraRewardDistribution
 export function handleVlCvxExtraRewardDistributionRewardPaid(
   event: vlCvxExtraRewardDistributionRewardPaid
@@ -465,29 +437,6 @@ export function handleVlCvxExtraRewardDistributionRewardPaid(
   platformReward.timestamp = event.block.timestamp;
 
   reward.save();
-  platformReward.save();
-}
-
-export function handleVlCvxExtraRewardDistributionRewardAdded(
-  event: vlCvxExtraRewardDistributionRewardAdded
-): void {
-  const _vlCvxExtraRewardDistribution = vlCvxExtraRewardDistribution.bind(
-    Address.fromString(vlCvxExtraRewardDistribution_address)
-  );
-  const platform = getPlatform(platform_curve);
-  const stakingToken = _vlCvxExtraRewardDistribution.cvxlocker();
-  const platformReward = getPlatformReward(
-    platform,
-    _vlCvxExtraRewardDistribution._address,
-    stakingToken,
-    event.params._token
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params._reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
   platformReward.save();
 }
 
@@ -529,29 +478,6 @@ export function handleVlCvxExtraRewardDistributionV2RewardPaid(
   platformReward.save();
 }
 
-export function handleVlCvxExtraRewardDistributionV2RewardAdded(
-  event: vlCvxExtraRewardDistributionV2RewardAdded
-): void {
-  const _vlCvxExtraRewardDistributionV2 = vlCvxExtraRewardDistributionV2.bind(
-    Address.fromString(vlCvxExtraRewardDistributionV2_address)
-  );
-  const platform = getPlatform(platform_curve);
-  const stakingToken = _vlCvxExtraRewardDistributionV2.cvxlocker();
-  const platformReward = getPlatformReward(
-    platform,
-    _vlCvxExtraRewardDistributionV2._address,
-    stakingToken,
-    event.params._token
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params._reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
-  platformReward.save();
-}
-
 // CvxRewardPool
 export function handleCvxRewardPoolRewardPaid(
   event: CvxRewardPoolRewardPaid
@@ -588,30 +514,6 @@ export function handleCvxRewardPoolRewardPaid(
   platformReward.timestamp = event.block.timestamp;
 
   reward.save();
-  platformReward.save();
-}
-
-export function handleCvxRewardPoolRewardAdded(
-  event: CvxRewardPoolRewardAdded
-): void {
-  const platform = getPlatform(platform_curve);
-  const cvxRewardPool = CvxRewardPool.bind(
-    Address.fromString(CvxRewardPool_address)
-  );
-  const stakingToken = cvxRewardPool.stakingToken();
-  const rewardToken = cvxRewardPool.rewardToken();
-  const platformReward = getPlatformReward(
-    platform,
-    cvxRewardPool._address,
-    stakingToken,
-    rewardToken
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params.reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
   platformReward.save();
 }
 
@@ -659,12 +561,14 @@ export function handleConvexMasterChefRewardPaid(
 export function handleVirtualBalanceRewardPoolRewardPaid(
   event: VirtualBalanceRewardPoolRewardPaid
 ): void {
+  const context = dataSource.context();
   const user = getUser(event.params.user);
   const platform = getPlatform(platform_curve);
   const virtualBalanceRewardPool = VirtualBalanceRewardPool.bind(
-    Address.fromString(VirtualBalanceRewardPool_address)
+    Address.fromString(context.getString("virtualBalanceRewardPool"))
   );
-  const stakingToken = virtualBalanceRewardPool.deposits();
+  const deposits = BaseRewardPool.bind(virtualBalanceRewardPool.deposits());
+  const stakingToken = deposits.stakingToken();
   const rewardToken = virtualBalanceRewardPool.rewardToken();
   const reward = getReward(
     platform,
@@ -694,27 +598,44 @@ export function handleVirtualBalanceRewardPoolRewardPaid(
   platformReward.save();
 }
 
-export function handleVirtualBalanceRewardPoolRewardAdded(
-  event: VirtualBalanceRewardPoolRewardAdded
+// CvxCrvReward
+// Custom treatment because Booster doesn't create it
+// Besides the address of the pool is missing from the context
+export function handleCvxCrvRewardRewardPaid(
+  event: CvxCrvRewardRewardPaid
 ): void {
+  const user = getUser(event.params.user);
   const platform = getPlatform(platform_curve);
-  const virtualBalanceRewardPool = VirtualBalanceRewardPool.bind(
-    Address.fromString(VirtualBalanceRewardPool_address)
+  const cvxCrvRewardPool = BaseRewardPool.bind(
+    Address.fromString(CvxCrvReward_address)
   );
-  const stakingToken = virtualBalanceRewardPool.deposits();
-  const rewardToken = virtualBalanceRewardPool.rewardToken();
+  const stakingToken = cvxCrvRewardPool.stakingToken();
+  const rewardToken = cvxCrvRewardPool.rewardToken();
+  const reward = getReward(
+    platform,
+    user,
+    cvxCrvRewardPool._address,
+    stakingToken,
+    rewardToken
+  );
   const platformReward = getPlatformReward(
     platform,
-    virtualBalanceRewardPool._address,
+    cvxCrvRewardPool._address,
     stakingToken,
     rewardToken
   );
 
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
+  reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
+    event.params.reward
+  );
+  reward.timestamp = event.block.timestamp;
+
+  platformReward.paidAmountCumulative = platformReward.paidAmountCumulative.plus(
     event.params.reward
   );
   platformReward.timestamp = event.block.timestamp;
 
+  reward.save();
   platformReward.save();
 }
 
@@ -754,30 +675,6 @@ export function handleConvexRewarderRewardPaid(
   platformReward.timestamp = event.block.timestamp;
 
   reward.save();
-  platformReward.save();
-}
-
-export function handleConvexRewarderRewardAdded(
-  event: ConvexRewarderRewardAdded
-): void {
-  const platform = getPlatform(platform_curve);
-  const convexRewarder = ConvexRewarder.bind(
-    Address.fromString(ConvexRewarder_address)
-  );
-  const stakingToken = convexRewarder.stakingToken();
-  const rewardToken = convexRewarder.rewardToken();
-  const platformReward = getPlatformReward(
-    platform,
-    convexRewarder._address,
-    stakingToken,
-    rewardToken
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params.reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
   platformReward.save();
 }
 
@@ -821,27 +718,18 @@ export function handleCrvRewardsPoolRewardPaid(
   platformReward.save();
 }
 
-export function handleCrvRewardsPoolRewardAdded(
-  event: PoolCrvRewardsRewardAdded
-): void {
+// ExtraRewards
+export function handleAddExtraReward(call: AddExtraRewardCall): void {
   const context = dataSource.context();
-  const platform = getPlatform(platform_curve);
-  const baseRewardPool = BaseRewardPool.bind(
-    Address.fromString(context.getString("crvRewardsPool"))
-  );
-  const stakingToken = baseRewardPool.stakingToken();
-  const rewardToken = baseRewardPool.rewardToken();
-  const platformReward = getPlatformReward(
-    platform,
-    baseRewardPool._address,
-    stakingToken,
-    rewardToken
-  );
-
-  platformReward.addedAmountCumulative = platformReward.addedAmountCumulative.plus(
-    event.params.reward
-  );
-  platformReward.timestamp = event.block.timestamp;
-
-  platformReward.save();
+  // success
+  if (call.outputs.value0) {
+    context.setString(
+      "virtualBalanceRewardPool",
+      call.inputs._reward.toHexString()
+    );
+    VirtualBalanceRewardPoolTemplate.createWithContext(
+      call.inputs._reward,
+      context
+    );
+  }
 }

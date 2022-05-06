@@ -29,7 +29,6 @@ query getRewards($platform_id: ID!) {
       stakingToken
       rewardToken
       paidAmountCumulative
-      addedAmountCumulative
     }
   }
 }
