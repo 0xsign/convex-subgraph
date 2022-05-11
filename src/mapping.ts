@@ -1,4 +1,5 @@
 import {
+  log,
   dataSource,
   Address,
   BigInt,
@@ -51,6 +52,7 @@ import {
   Booster,
   RewardClaimedCall,
 } from "../generated/Booster/Booster";
+import { ConvexToken } from "../generated/Booster/ConvexToken";
 import { Platform, Reward, User, PlatformReward } from "../generated/schema";
 import {
   CrvRewardsPool,
@@ -76,6 +78,7 @@ const ConvexMasterChef_address = "0x5f465e9fcffc217c5849906216581a657cd60605";
 const ConvexRewarder_address = "0x1fd97b5e5a257b0b9b9a42a96bb8870cbdd1eb79";
 const CvxCrvReward_address = "0x3fe65692bfcd0e6cf84cb1e7d24108e434a7587e";
 const Cvx_address = "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b";
+const BigIntZero = new BigInt(0);
 const platform_curve = "curve";
 const platform_frax = "frax";
 
@@ -192,6 +195,10 @@ export function handleAddPool(call: AddPoolCall): void {
     const context = new DataSourceContext();
     context.setString("pid", call.to.toString());
     context.setString("crvRewardsPool", poolInfo.value.value3.toHexString());
+    log.info("handleAddPool create new BaseRewardPool {} {}", [
+      call.to.toString(),
+      poolInfo.value.value3.toHexString(),
+    ]);
     CrvRewardsPool.createWithContext(poolInfo.value.value3, context);
   }
 
@@ -227,6 +234,10 @@ export function handleRewardClaimed(call: RewardClaimedCall): void {
     const baseRewardPool = BaseRewardPool.bind(poolAddress);
     const stakingToken = baseRewardPool.stakingToken();
     const rewardToken = Address.fromString(Cvx_address);
+    log.info("handleRewardClaimed mint CVX {} {}", [
+      poolAddress.toHexString(),
+      stakingToken.toHexString(),
+    ]);
     const reward = getReward(
       platform,
       user,
@@ -241,18 +252,53 @@ export function handleRewardClaimed(call: RewardClaimedCall): void {
       rewardToken
     );
 
-    reward.paidAmountCumulative = reward.paidAmountCumulative.plus(
-      call.inputs._amount
-    );
-    reward.timestamp = call.block.timestamp;
+    // Manually compute minted amount:
+    // Note a cleaner approach would be to subscribe to CVX#Transfer event
+    // but it would be trickier to get the pool from there
 
-    platformReward.paidAmountCumulative = platformReward.paidAmountCumulative.plus(
-      call.inputs._amount
-    );
-    platformReward.timestamp = call.block.timestamp;
+    const cvx = ConvexToken.bind(rewardToken);
+    const supply = cvx.totalSupply();
+    let amount = BigIntZero;
+    if (supply.equals(BigIntZero)) {
+      amount = call.inputs._amount;
+    } else {
+      const maxSupply = cvx.maxSupply();
+      const reductionPerCliff = cvx.reductionPerCliff();
+      const totalCliffs = cvx.totalCliffs();
 
-    reward.save();
-    platformReward.save();
+      const cliff = supply.div(reductionPerCliff);
+      //mint if below total cliffs
+      if (cliff.lt(totalCliffs)) {
+        //for reduction% take inverse of current cliff
+        const reduction = totalCliffs.minus(cliff);
+        //reduce
+        amount = call.inputs._amount.times(reduction).div(totalCliffs);
+
+        //supply cap check
+        const amtTillMax = maxSupply.minus(supply);
+        if (amount.gt(amtTillMax)) {
+          amount = amtTillMax;
+        }
+      }
+    }
+
+    log.info("handleRewardClaimed amount minted CVX {} {}", [
+      call.inputs._amount.toString(),
+      amount.toString(),
+    ]);
+
+    if (amount.gt(BigIntZero)) {
+      reward.paidAmountCumulative = reward.paidAmountCumulative.plus(amount);
+      reward.timestamp = call.block.timestamp;
+
+      platformReward.paidAmountCumulative = platformReward.paidAmountCumulative.plus(
+        amount
+      );
+      platformReward.timestamp = call.block.timestamp;
+
+      reward.save();
+      platformReward.save();
+    }
   }
 }
 
@@ -720,7 +766,10 @@ export function handleCrvRewardsPoolRewardPaid(
 
 // ExtraRewards
 export function handleAddExtraReward(call: AddExtraRewardCall): void {
-  const context = dataSource.context();
+  const context = new DataSourceContext();
+  log.info("handleAddExtraReward create new VirtualBalanceRewardPool {}", [
+    call.inputs._reward.toHexString(),
+  ]);
   // success
   if (call.outputs.value0) {
     context.setString(
