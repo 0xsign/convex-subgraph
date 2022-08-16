@@ -1,6 +1,6 @@
 # Convex-subgraph
 
-Subgraph Endpoint: https://api.thegraph.com/subgraphs/id/QmWsJjUFSby26BkR27bTgjYMEvg7C8dvuAXQnmWSMbaxaV
+Hosted service: https://thegraph.com/hosted-service/subgraph/0xsign/convex
 
 Listen to all `RewardPaid` events to collect and accumulate account rewards information.
 
